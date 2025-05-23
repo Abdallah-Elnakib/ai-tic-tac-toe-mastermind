@@ -8,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 
 type Player = 'X' | 'O' | null;
 type Board = Player[];
+type GameResult = Player | 'tie';
 
 const TicTacToe = () => {
   const [board, setBoard] = useState<Board>(Array(9).fill(null));
@@ -20,7 +21,7 @@ const TicTacToe = () => {
   const [aiScore, setAiScore] = useState(0);
   const [ties, setTies] = useState(0);
 
-  const checkWinner = useCallback((board: Board): Player => {
+  const checkWinner = useCallback((board: Board): GameResult => {
     const lines = [
       [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
       [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
@@ -33,15 +34,15 @@ const TicTacToe = () => {
       }
     }
 
-    return board.includes(null) ? null : 'tie' as Player;
+    return board.includes(null) ? null : 'tie';
   }, []);
 
   const minimax = useCallback((board: Board, depth: number, isMaximizing: boolean): number => {
-    const winner = checkWinner(board);
+    const result = checkWinner(board);
     
-    if (winner === 'O') return 10 - depth;
-    if (winner === 'X') return depth - 10;
-    if (winner === 'tie') return 0;
+    if (result === 'O') return 10 - depth;
+    if (result === 'X') return depth - 10;
+    if (result === 'tie') return 0;
 
     if (isMaximizing) {
       let bestScore = -Infinity;
@@ -111,9 +112,9 @@ const TicTacToe = () => {
     setIsPlayerTurn(false);
     playSound('move');
 
-    const winner = checkWinner(newBoard);
-    if (winner) {
-      if (winner === 'X') {
+    const result = checkWinner(newBoard);
+    if (result) {
+      if (result === 'X') {
         setGameStatus('won');
         setPlayerScore(prev => prev + 1);
         playSound('win');
@@ -121,7 +122,8 @@ const TicTacToe = () => {
           title: "🎉 مبروك!",
           description: "لقد فزت في هذه الجولة!",
         });
-      } else if (winner === 'tie') {
+        setWinner('X');
+      } else if (result === 'tie') {
         setGameStatus('tie');
         setTies(prev => prev + 1);
         playSound('tie');
@@ -129,8 +131,8 @@ const TicTacToe = () => {
           title: "🤝 تعادل",
           description: "لا أحد فاز في هذه الجولة",
         });
+        setWinner(null);
       }
-      setWinner(winner === 'tie' ? null : winner);
       return;
     }
 
@@ -143,9 +145,9 @@ const TicTacToe = () => {
         setBoard(newBoard);
         playSound('move');
 
-        const aiWinner = checkWinner(newBoard);
-        if (aiWinner) {
-          if (aiWinner === 'O') {
+        const aiResult = checkWinner(newBoard);
+        if (aiResult) {
+          if (aiResult === 'O') {
             setGameStatus('lost');
             setAiScore(prev => prev + 1);
             playSound('lose');
@@ -153,7 +155,8 @@ const TicTacToe = () => {
               title: "🤖 الذكاء الاصطناعي فاز",
               description: "حاول مرة أخرى!",
             });
-          } else if (aiWinner === 'tie') {
+            setWinner('O');
+          } else if (aiResult === 'tie') {
             setGameStatus('tie');
             setTies(prev => prev + 1);
             playSound('tie');
@@ -161,8 +164,8 @@ const TicTacToe = () => {
               title: "🤝 تعادل",
               description: "لا أحد فاز في هذه الجولة",
             });
+            setWinner(null);
           }
-          setWinner(aiWinner === 'tie' ? null : aiWinner);
         } else {
           setIsPlayerTurn(true);
         }
